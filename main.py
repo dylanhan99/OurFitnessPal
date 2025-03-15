@@ -1,37 +1,39 @@
 from flask import Flask, render_template
-#from flask_sqlalchemy import SQLAlchemy
-#from sqlalchemy import inspect
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect
 
 app = Flask(__name__)
 
 # Database connection details
-#app.config['SQLALCHEMY_DATABASE_URI'] = (
-#    'mssql+pymssql://dylantheadmin:Test!1234@csd3156-dylancloud.database.windows.net/SampleDB'
-#)
-#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    'mssql+pymssql://dylantheadmin:Test!1234@csd3156-dylancloud.database.windows.net/SampleDB'
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-#db = SQLAlchemy(app)
+db = SQLAlchemy(app)
 
-#@app.route('/')
-#def index():
-#    try:
-#        inspector = inspect(db.engine)
-#        table_data = {}
-#        
-#        for table_name in inspector.get_table_names():
-#            query = f"SELECT * FROM {table_name}"
-#            result = db.session.execute(query).fetchall()
-#            table_data[table_name] = [dict(zip(row.keys(), row)) for row in result]
-#        
-#        return render_template('index.html', message="hi")#table_data=table_data)
-#    except Exception as e:
-#        return f"Error: {str(e)}"
+@app.route('/')
+def index():
+    try:
+        inspector = inspect(db.engine)
+        table_data = {}
 
-@app.route("/")
-def home():
-    message = "hi"
-    return render_template('index.html', message=message)
+        table_data = inspector.get_table_names()
+        
+        #for table_name in inspector.get_table_names():
+        #    query = f"SELECT * FROM {table_name}"
+        #    result = db.session.execute(query).fetchall()
+        #    table_data[table_name] = [dict(zip(row.keys(), row)) for row in result]
+        
+        return render_template('index.html', table_data=table_data)
+    except Exception as e:
+        return f"Error: {str(e)}"
 
+#@app.route("/")
+#def home():
+#    message = "hi"
+#    return render_template('index.html', message=message)
+#
 if __name__ == '__main__':
     app.run(debug=True)
 
