@@ -1,1 +1,1 @@
-"# OurFitnessPal" 
+# OurFitnessPal
