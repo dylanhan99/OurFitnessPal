@@ -1,8 +1,18 @@
 from flask import Flask, render_template
+import requests
 #from flask_sqlalchemy import SQLAlchemy
 #from sqlalchemy import inspect
 
 app = Flask(__name__)
+public_ipv4 = None
+
+@app.before_first_request()
+def fetch_instance_ip():
+    global public_ipv4
+    try:
+        public_ipv4 = requests.get("http://169.254.169.254/latest/meta-data/public-ipv4").text
+    except requests.RequestException:
+        public_ipv4 = "Unable to retrieve public IP"
 
 # Database connection details
 #app.config['SQLALCHEMY_DATABASE_URI'] = (
@@ -33,7 +43,7 @@ def index():
     #{% endfor %}
 
     message = "hi"
-    return render_template('index.html', message=message)
+    return render_template('index.html', public_ipv4=public_ipv4, message=message)
     #<p>{{message}}</p>
 
 if __name__ == '__main__':
