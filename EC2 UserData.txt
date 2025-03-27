@@ -1,0 +1,4 @@
+#!/bin/bash
+# Update package and start Apache web server
+sudo yum update -y
+
