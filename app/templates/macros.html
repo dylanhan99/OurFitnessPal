@@ -1,0 +1,21 @@
+{% macro meal_table(name) %}
+<table border="1">
+    <tr>
+        <th>{{name}}</th>
+        <td>Calories</td>
+        <td>Protein</td>
+    </tr>
+    <tr>
+        <td>[Food name]</td>
+        <td>[Calorie val]</td>
+        <td>[Protein val]</td>
+    </tr>
+    <tr>
+        <td>
+            <button>Add Food</button>
+        </td>
+        <td>[Caloric sum]</td>
+        <td>[Protein sum]</td>
+    </tr>
+</table>
+{% endmacro %}

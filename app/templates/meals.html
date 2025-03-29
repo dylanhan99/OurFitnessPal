@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% import "macros.html" as macros %}
+
+    <h1>Base</h1>
+    {{ macros.meal_table("BREAKFAST") }}
+{% endblock %}

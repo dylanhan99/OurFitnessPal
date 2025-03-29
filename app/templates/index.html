@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Database Tables</title>
+    <title>OurFitnessPal</title>
 </head>
 <body>
-    <p>{{public_ipv4}}</p>
-    <h1>Database Tables</h1>
+    {% import "macros.html" as macros %}
+
+    <p>Welcome Comrade. You are on server {{public_ipv4}}</p>
+    <h1>Base</h1>
     <p>{{message}}</p>
+    {{ macros.meal_table("BREAKFAST") }}
 </body>
 </html>

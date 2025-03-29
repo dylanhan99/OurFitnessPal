@@ -1,18 +1,22 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect, url_for
 import requests
+import sqlite3
 #from flask_sqlalchemy import SQLAlchemy
 #from sqlalchemy import inspect
 
 app = Flask(__name__)
 public_ipv4 = None
 
-@app.before_first_request()
 def fetch_instance_ip():
     global public_ipv4
     try:
-        public_ipv4 = requests.get("http://169.254.169.254/latest/meta-data/public-ipv4").text
+        public_ipv4 = "Unable to retrieve public IP"
+        #public_ipv4 = requests.get("http://169.254.169.254/latest/meta-data/public-ipv4").text
     except requests.RequestException:
         public_ipv4 = "Unable to retrieve public IP"
+
+with app.app_context():
+    fetch_instance_ip()
 
 # Database connection details
 #app.config['SQLALCHEMY_DATABASE_URI'] = (
@@ -42,9 +46,16 @@ def index():
     #<p>{{table_name}}</p>
     #{% endfor %}
 
-    message = "hi"
-    return render_template('index.html', public_ipv4=public_ipv4, message=message)
-    #<p>{{message}}</p>
+    return redirect(url_for("meals"))
+    #return render_template('meals.html', public_ipv4=public_ipv4)
+
+@app.route('/meals')
+def meals(): 
+    return render_template('meals.html', public_ipv4=public_ipv4)
+
+@app.route('/dev')
+def dev(): 
+    return render_template('dev.html', public_ipv4=public_ipv4)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
