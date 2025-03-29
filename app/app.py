@@ -1,8 +1,7 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
 import requests
-import sqlite3
-#from flask_sqlalchemy import SQLAlchemy
-#from sqlalchemy import inspect
 
 app = Flask(__name__)
 public_ipv4 = None
@@ -18,36 +17,12 @@ def fetch_instance_ip():
 with app.app_context():
     fetch_instance_ip()
 
-# Database connection details
-#app.config['SQLALCHEMY_DATABASE_URI'] = (
-#    'mssql+pymssql://dylantheadmin:Test!1234@csd3156-dylancloud.database.windows.net/SampleDB'
-#)
-#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-#
-#db = SQLAlchemy(app)
+# Database engine details
+db_engine = create_engine("sqlite:///ofp.db")
 
 @app.route('/')
 def index():
-#    try:
-#        inspector = inspect(db.engine)
-#        table_data = {}
-#
-#        table_data = inspector.get_table_names()
-#        
-#        #for table_name in inspector.get_table_names():
-#        #    query = f"SELECT * FROM {table_name}"
-#        #    result = db.session.execute(query).fetchall()
-#        #    table_data[table_name] = [dict(zip(row.keys(), row)) for row in result]
-#        
-#        return render_template('index.html', table_data=table_data)
-#    except Exception as e:
-#        return f"Error: {str(e)}"
-    #{% for table_name in table_data %}
-    #<p>{{table_name}}</p>
-    #{% endfor %}
-
-    return redirect(url_for("meals"))
-    #return render_template('meals.html', public_ipv4=public_ipv4)
+    return redirect(url_for("dev"))
 
 @app.route('/meals')
 def meals(): 
@@ -55,7 +30,27 @@ def meals():
 
 @app.route('/dev')
 def dev(): 
-    return render_template('dev.html', public_ipv4=public_ipv4)
+    #connection.execute()
+    return render_template('dev.html', public_ipv4=public_ipv4, query_err_msg="")
+
+@app.route('/dev', methods=['POST'])
+def dev_post():
+    query = request.form["query"]
+    succ, sql_value = execute_sql_query(query)
+    if succ:
+        return render_template('dev.html', public_ipv4=public_ipv4, query_err_msg="")
+    else:
+        return render_template('dev.html', public_ipv4=public_ipv4, query_err_msg=sql_value)
+
+def execute_sql_query(query):
+    try:
+        with db_engine.connect() as connection:
+            result = connection.execute(text(query))
+
+            rows = result.fetchall()
+            return True, rows
+    except SQLAlchemyError as e:
+        return False, str(e)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
