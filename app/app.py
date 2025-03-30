@@ -9,6 +9,8 @@ from dev import blueprint_dev
 
 def create_app():
     app = Flask(__name__) # Get anywhere via current_app
+    app.secret_key = "some_key"
+
     @app.route('/')
     def index():
         return redirect(url_for("dev.dev_index"))
