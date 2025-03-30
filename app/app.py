@@ -1,58 +1,39 @@
-from flask import Flask, render_template, redirect, url_for, request
-from sqlalchemy import create_engine, text
-from sqlalchemy.exc import SQLAlchemyError
-import requests
+from flask import Flask, render_template, redirect, url_for
 
-app = Flask(__name__)
-public_ipv4 = None
+# My helpers
+import random_helpers as ofp
+import ofpdb
 
-def fetch_instance_ip():
-    global public_ipv4
-    try:
-        public_ipv4 = "Unable to retrieve public IP"
-        #public_ipv4 = requests.get("http://169.254.169.254/latest/meta-data/public-ipv4").text
-    except requests.RequestException:
-        public_ipv4 = "Unable to retrieve public IP"
+# My Py pages
+from dev import blueprint_dev
 
-with app.app_context():
-    fetch_instance_ip()
+def create_app():
+    app = Flask(__name__) # Get anywhere via current_app
+    @app.route('/')
+    def index():
+        return redirect(url_for("dev.dev_index"))
 
-# Database engine details
-db_engine = create_engine("sqlite:///ofp.db")
+    @app.route('/meals')
+    def meals(): 
+        return render_template('meals.html', public_ipv4=app.config["IPV4_PUBLIC"])
 
-@app.route('/')
-def index():
-    return redirect(url_for("dev"))
-
-@app.route('/meals')
-def meals(): 
-    return render_template('meals.html', public_ipv4=public_ipv4)
-
-@app.route('/dev')
-def dev(): 
-    #connection.execute()
-    return render_template('dev.html', public_ipv4=public_ipv4, query_err_msg="")
-
-@app.route('/dev', methods=['POST'])
-def dev_post():
-    query = request.form["query"]
-    succ, sql_value = execute_sql_query(query)
-    if succ:
-        return render_template('dev.html', public_ipv4=public_ipv4, query_err_msg="")
-    else:
-        return render_template('dev.html', public_ipv4=public_ipv4, query_err_msg=sql_value)
-
-def execute_sql_query(query):
-    try:
-        with db_engine.connect() as connection:
-            result = connection.execute(text(query))
-
-            rows = result.fetchall()
-            return True, rows
-    except SQLAlchemyError as e:
-        return False, str(e)
+    # Page blueprints
+    app.register_blueprint(blueprint_dev)
+        
+    # Global vars
+    app.config["IPV4_PUBLIC"] = ofp.fetch_instance_ip()
+    
+    return app
 
 if __name__ == '__main__':
+    # one-off init stuff
+    # Core init
+    app = create_app()
+    
+    # System/Engine inits
+    ofpdb.init()
+
+    # entrypoint
     app.run(debug=True, host='0.0.0.0')
 
 #class User(db.Model):
