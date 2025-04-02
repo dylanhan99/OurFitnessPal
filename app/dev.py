@@ -1,13 +1,14 @@
 from flask import current_app, Blueprint, render_template, request, session
 
 # My helpers
+from misc_tools import OFPGlobals
 import random_helpers as ofp
-import ofpdb
+from ofpdb import DBEngine
 
 blueprint_dev = Blueprint("dev", __name__)
 
 def set_selected_table(table_name: str):
-    selected_table = ofpdb.get_table(table_name)
+    selected_table = DBEngine().get_table(table_name)
     if selected_table is None:
         session["selected_table_name"] = "-"
         session["selected_table_col_names"] = None
@@ -31,7 +32,7 @@ def set_selected_table(table_name: str):
 
 def render_dev():
     return render_template('dev.html', \
-                            public_ipv4=current_app.config["IPV4_PUBLIC"], \
+                            public_ipv4=OFPGlobals().get("IPV4_PUBLIC"), \
                             table_ddl=session.get("table_ddl", []), \
                             selected_table_name=session.get("selected_table_name", "-"), \
                             selected_table_col_names=session.get("selected_table_col_names", None), \
@@ -42,7 +43,7 @@ def render_dev():
 @blueprint_dev.route("/dev", methods=['GET'])
 def dev_index():
     query = "SELECT name FROM sqlite_master WHERE type='table'"
-    succ, sql_table_names = ofpdb.execute_sql_query(query)
+    succ, sql_table_names = DBEngine().execute_sql_query(query)
     
     print(f"sql_table_names > {sql_table_names}")
     session["table_ddl"] = [row[0] for row in sql_table_names] if succ else []

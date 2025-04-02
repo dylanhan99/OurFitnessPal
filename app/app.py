@@ -1,8 +1,10 @@
 from flask import Flask, render_template, redirect, url_for
 
 # My helpers
+from misc_tools import OFPGlobals
 import random_helpers as ofp
 import ofpdb
+from ofpdb import DBEngine
 
 # My Py pages
 from dev import blueprint_dev
@@ -17,23 +19,21 @@ def create_app():
 
     @app.route('/meals')
     def meals(): 
-        return render_template('meals.html', public_ipv4=app.config["IPV4_PUBLIC"])
+        return render_template('meals.html', public_ipv4=OFPGlobals().get("IPV4_PUBLIC"))
 
     # Page blueprints
     app.register_blueprint(blueprint_dev)
         
     # Global vars
-    app.config["IPV4_PUBLIC"] = ofp.fetch_instance_ip()
-    
+    OFPGlobals() # Explicit initialization
+    OFPGlobals().set("IPV4_PUBLIC", ofp.fetch_instance_ip())
+    DBEngine()
+
     return app
 
 if __name__ == '__main__':
-    # one-off init stuff
     # Core init
     app = create_app()
-    
-    # System/Engine inits
-    ofpdb.init()
 
     # entrypoint
     app.run(debug=True, host='0.0.0.0')
