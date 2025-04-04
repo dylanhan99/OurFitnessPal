@@ -1,49 +1,23 @@
-from sqlalchemy import create_engine, text, MetaData, Table, Column, Integer, String, inspect
 from sqlalchemy.exc import SQLAlchemyError
+from flask_sqlalchemy import SQLAlchemy
 from typing import Dict, List, Any, Optional, Union, Tuple
 import logging
 from threading import Lock
 
-from app import db
+db = SQLAlchemy() # Initialize empty thing so that db models can be set up
 
 class DBEngine():
     """ A wrapper around the SQLAlchemy engine."""
-    _engine = db
-
-    #####
-    # Some models for this engine
-    class UserTable(db.Model):
-        id          = db.Column(db.Integer, primary_key=True)
-        username    = db.Column(db.String(20), unique=True, nullable=False)
-    
-    class FoodTable(db.Model):
-        id          = db.Column(db.Integer, primary_key=True)
-        name        = db.Column(db.String(80), nullable=False)
-        description = db.Column(db.String(120), nullable=False)
-        user_id     = db.Column(db.Integer, db.ForeignKey("UserTable.id"))
-    #####
+    _engine = None
 
     def __init__(self):
         """
-        Initialize the SQLAlchemy engine given a connection string
-        e.g. 'sqlite:///ofp.db'
+        Initialize the SQLAlchemy engine
         """
-        self._metadata = MetaData()
+        self._engine = db
         self._tables = {}
         self._logger = logging.getLogger(__name__) # i think shd make logger a global
         self._lock = Lock()
-
-    def connect(self) -> None:
-        """
-        To explicitly refresh metadata. Needed cus of loadbalancing, so all app servers
-        are out of sync you could think of it. So gotta always refresh with main DB server stuff.
-        """
-        try:
-            self._metadata.reflect(bind=self.engine)
-            self._logger.info("Successfully connected to database")
-        except SQLAlchemyError as e:
-            self._logger.error(f"Error connecting to database: {str(e)}")
-            raise
 
     def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
@@ -52,7 +26,6 @@ class DBEngine():
         Returns dict containing query results
         """
         try:
-            self.connect()
             with self._engine.connect() as connection:
                 result = connection.execute(query, params)
                 return [dict(row) for row in result]
@@ -67,7 +40,6 @@ class DBEngine():
         Returns number of rows altered
         """
         try:
-            self.connect()
             with self._engine.connect() as connection:
                 result = connection.execute(query, params) # It will throw an error safely in cases of multi-line query
                 connection.commit()
@@ -105,8 +77,12 @@ class DBEngine():
     
     @property
     def metadata(self):
-        return self._metadata
+        return self._engine.metadata
     
+    @property
+    def tables(self):
+        return self._tables
+
 class BaseTable:
     def __init__(self, db_engine: DBEngine, table_name: str):
         self._db = db_engine
@@ -136,49 +112,3 @@ class BaseTable:
     def delete(self, condition: str, condition_data: Dict[str, Any] = None) -> int:
         query = f"DELETE FROM {self._table_name} WHERE {condition}"
         return self._db.execute_with_commit(query, condition_data)
-    
-    
-class FoodTable(BaseTable):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-#    
-#
-######################################################
-#
-#db_engine = None
-#db_metadata = None
-#
-##CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));
-#class User(db.Model):
-#    id = db.Column(db.Integer, primary_key=True)
-#    name = db.Column(db.String(80), nullable=False)
-#    email = db.Column(db.String(120), unique=True, nullable=False)
-#
-#def init():
-#    global db_engine
-#    global db_metadata
-#    db_engine = create_engine("sqlite:///ofp.db")
-#    db_metadata = MetaData()
-#
-#def execute_sql_query(query):
-#    try:
-#        with db_engine.connect() as connection:
-#            if isinstance(query, Executable):
-#                result = connection.execute(query)
-#            elif isinstance(query, str):
-#                result = connection.execute(text(query))
-#            else:
-#                return False, "execute_sql_query - Query is neither a Executable nor a str"
-#            return True, result.fetchall()
-#    except SQLAlchemyError as e:
-#        return False, str(e)
-#
-## Returns a handle to the table. 
-## Returns None if cannot find.    
-#def get_table(table_name: str):
-#    print(f"get_table - {table_name}")
-#    db_inspector = inspect(db_engine)
-#    if table_name not in db_inspector.get_table_names():
-#        return None
-#    return Table(table_name, db_metadata, autoload_with=db_engine)

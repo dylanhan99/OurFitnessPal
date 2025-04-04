@@ -1,43 +1,44 @@
 from flask import current_app, Blueprint, render_template, request, session
-from flask_login import login_required
-
-# My helpers
-import random_helpers as ofp
-#from ofpdb import DBEngine
-from app import db
+import logging
+from app import db_engine as db
+from app import global_storage
 
 blueprint_dev = Blueprint("dev", __name__)
 
 def set_selected_table(table_name: str):
     try:
         selected_table = db.get_table(table_name)
+        global_storage.set("selected_table_name", selected_table)
         result = db.execute_query(selected_table.select())
         print(result)
-    except:
-        return
+    except Exception as e:
+        logging.error(str(e))
 
 def render_dev():
-    return render_template('dev.html') #\
-                            #public_ipv4=OFPGlobals().get("IPV4_PUBLIC"), \
+    return render_template('dev.html', \
+                            public_ipv4 = global_storage.get("IPV4_PUBLIC"), \
+                            selected_table_name = global_storage.get("selected_table_name"), \
+                            table_names = [name for name, _ in db.metadata.tables.items()] \
                             #table_ddl=session.get("table_ddl", []), \
                             #selected_table_name=session.get("selected_table_name", "-"), \
                             #selected_table_col_names=session.get("selected_table_col_names", None), \
                             #selected_table_data=session.get("selected_table_data", None), \
                             #query_err_msg=session.get("query_err_msg", "") \
-                        #)
+                        )
 
-@blueprint_dev.route("/dev", methods=['GET'])
-@login_required
+@blueprint_dev.route("/dev", methods=['GET', 'POST'])
 def dev_index():
-    query = "SELECT name FROM sqlite_master WHERE type='table'"
-    #result = db.execute_query(query)
-    #print (result)
+    if request.method == 'GET': # First load
+        # Just get the first tablename if there is one
+        items = db.metadata.tables.items()
+        if items and len(items) > 0:
+            set_selected_table(list(items)[0][0]) # first tuple, first var
+    elif request.method == 'POST':
+        form = request.form
+        form_id = form.get("form_id")
+        if form_id == "choose_table":
+            table_name = form["table_ddl"]
+            set_selected_table(table_name)
 
-    return render_dev()
 
-@blueprint_dev.route("/dev", methods=['POST'])
-@login_required
-def dev_submit():
-    
-    
     return render_dev()

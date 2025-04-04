@@ -2,5 +2,14 @@
 
 {% block content %}
     {% import "macros.html" as macros %}
-    
+    <form method="POST">
+        <input type="hidden" name="form_id" value="choose_table">
+        <label for="table_ddl">Choose Table</label>
+        <select name="table_ddl" id="table_ddl" value="table_ddl" onchange="this.form.submit();">
+            <option value="{{selected_table_name}}"></option>
+            {% for name in table_ddl %}
+                <option value="{{name}}">{{name}}</option>
+            {% endfor %}
+        </select>
+    </form>
 {% endblock %}
