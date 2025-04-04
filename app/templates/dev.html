@@ -2,46 +2,5 @@
 
 {% block content %}
     {% import "macros.html" as macros %}
-    <form method="POST">
-        <input type="hidden" name="form_id" value="choose_table">
-        <label for="table_ddl">Choose Table</label>
-        <select name="table_ddl" id="table_ddl" value="table_ddl" onchange="this.form.submit();">
-            <option value=""></option>
-            {% for name in table_ddl %}
-                <option value="{{name}}">{{name}}</option>
-            {% endfor %}
-        </select>
-    </form>
-
-    <table border="1">
-        <tr>
-            {% if selected_table_col_names %}
-                {% for col_name in selected_table_col_names %}
-                    <th>{{col_name}}</th>
-                {% endfor %}
-            {% endif %}
-        </tr>
-        <tr>
-            {% if selected_table_data %}
-                {% for row in selected_table_data %}
-                    {% for cell in row.values() %}
-                        <td>{{cell}}</td>
-                    {% endfor %}
-                {% endfor %}
-            {% endif %}
-        </tr>
-    </table>
     
-    <form method="POST">
-        <input type="hidden" name="form_id" value="submit_query">
-        <input name="query">
-        <input type="submit">
-    </form>
-    <p>{{query_err_msg}}</p>
-    <p>Da name > {{selected_table_name}}</p>
-
-    <script>
-        const selected_table_name = "{{selected_table_name}}"
-        document.getElementById("table_ddl").value = selected_table_name
-    </script>
 {% endblock %}

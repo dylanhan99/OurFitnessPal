@@ -1,70 +1,43 @@
 from flask import current_app, Blueprint, render_template, request, session
+from flask_login import login_required
 
 # My helpers
-from misc_tools import OFPGlobals
 import random_helpers as ofp
-from ofpdb import DBEngine
+#from ofpdb import DBEngine
+from app import db
 
 blueprint_dev = Blueprint("dev", __name__)
 
 def set_selected_table(table_name: str):
-    selected_table = DBEngine().get_table(table_name)
-    if selected_table is None:
-        session["selected_table_name"] = "-"
-        session["selected_table_col_names"] = None
-        session["selected_table_data"] = None
-        return False, "ofpdb Failed to get_table"
-    
-    succ, result = ofpdb.execute_sql_query(selected_table.select())
-    if not succ:
-        session["selected_table_name"] = "-"
-        session["selected_table_col_names"] = None
-        session["selected_table_data"] = None
-        return False, f"ofpdb Failed to execute_sql_query '{result}'"
-    
-    keys = [column.name for column in selected_table.columns]
-    print (result)
-    rows = [dict(row) for row in result]
-    session["selected_table_name"] = table_name
-    session["selected_table_col_names"] = keys
-    session["selected_table_data"] = rows
-    return True, ""
+    try:
+        selected_table = db.get_table(table_name)
+        result = db.execute_query(selected_table.select())
+        print(result)
+    except:
+        return
 
 def render_dev():
-    return render_template('dev.html', \
-                            public_ipv4=OFPGlobals().get("IPV4_PUBLIC"), \
-                            table_ddl=session.get("table_ddl", []), \
-                            selected_table_name=session.get("selected_table_name", "-"), \
-                            selected_table_col_names=session.get("selected_table_col_names", None), \
-                            selected_table_data=session.get("selected_table_data", None), \
-                            query_err_msg=session.get("query_err_msg", "") \
-                        )
+    return render_template('dev.html') #\
+                            #public_ipv4=OFPGlobals().get("IPV4_PUBLIC"), \
+                            #table_ddl=session.get("table_ddl", []), \
+                            #selected_table_name=session.get("selected_table_name", "-"), \
+                            #selected_table_col_names=session.get("selected_table_col_names", None), \
+                            #selected_table_data=session.get("selected_table_data", None), \
+                            #query_err_msg=session.get("query_err_msg", "") \
+                        #)
 
 @blueprint_dev.route("/dev", methods=['GET'])
+@login_required
 def dev_index():
     query = "SELECT name FROM sqlite_master WHERE type='table'"
-    succ, sql_table_names = DBEngine().execute_sql_query(query)
-    
-    print(f"sql_table_names > {sql_table_names}")
-    session["table_ddl"] = [row[0] for row in sql_table_names] if succ else []
+    #result = db.execute_query(query)
+    #print (result)
 
     return render_dev()
 
 @blueprint_dev.route("/dev", methods=['POST'])
+@login_required
 def dev_submit():
-    if request.method == 'POST':
-        form_id = request.form.get("form_id")
-        if form_id == "choose_table":
-            table_name = request.form["table_ddl"]
-            select_ok, err_msg = set_selected_table(table_name)
-            if not select_ok:
-                print(f"DEV - Failed to get {table_name} from ofdb > '{err_msg}'")
-            
-        elif form_id == "submit_query":
-            query = request.form["query"]
-            if len(query) > 0:
-                succ, sql_value = ofpdb.execute_sql_query(query)
-                session["query_err_msg"] = sql_value if not succ else ""
-                # not doing anything with a "correct" return value rn
+    
     
     return render_dev()

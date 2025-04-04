@@ -1,24 +1,20 @@
-from sqlalchemy import SQLAlchemy, create_engine, text, MetaData, Table, Column, Integer, String, inspect
+from sqlalchemy import create_engine, text, MetaData, Table, Column, Integer, String, inspect
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Dict, List, Any, Optional, Union, Tuple
 import logging
 from threading import Lock
 
-from misc_tools import BaseSingleton
+from app import db
 
-db_engine = create_engine("sqlite:///ofp.db")
-db = SQLAlchemy(db_engine)
-
-class DBEngine(BaseSingleton):
+class DBEngine():
     """ A wrapper around the SQLAlchemy engine."""
-    _engine = db_engine
+    _engine = db
 
     #####
     # Some models for this engine
     class UserTable(db.Model):
         id          = db.Column(db.Integer, primary_key=True)
         username    = db.Column(db.String(20), unique=True, nullable=False)
-        password    = db.Column(db.String(120), nullable=False)
     
     class FoodTable(db.Model):
         id          = db.Column(db.Integer, primary_key=True)
@@ -58,7 +54,7 @@ class DBEngine(BaseSingleton):
         try:
             self.connect()
             with self._engine.connect() as connection:
-                result = self.execute(query, params)
+                result = connection.execute(query, params)
                 return [dict(row) for row in result]
         except SQLAlchemyError as e:
             self._logger.error(f"Error executing query: {str(e)}")
@@ -73,8 +69,8 @@ class DBEngine(BaseSingleton):
         try:
             self.connect()
             with self._engine.connect() as connection:
-                result = self.execute(query, params) # It will throw an error safely in cases of multi-line query
-                self.session.commit()
+                result = connection.execute(query, params) # It will throw an error safely in cases of multi-line query
+                connection.commit()
                 return result.rowcount
         except SQLAlchemyError as e:
             self._logger.error(f"Error executing query: {str(e)}")

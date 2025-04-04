@@ -1,66 +1,37 @@
-from flask import Flask, render_template, redirect, url_for
+from typing import Dict, Any
+from flask import Flask
+from flask_login import LoginManager, login_manager
+from flask_sqlalchemy import SQLAlchemy
 
-# My helpers
-from misc_tools import OFPGlobals
+from misc_tools import OFPStorage
 import random_helpers as ofp
-import ofpdb
-from ofpdb import DBEngine
 
-# My Py pages
-from dev import blueprint_dev
+ofp_app = None # Get anywhere via current_app
+#login_manager = None
+db = None
+user_storage = None
+global_storage = None
 
-def create_app():
-    app = Flask(__name__) # Get anywhere via current_app
-    app.secret_key = "some_key"
+def init_app():
+    global ofp_app
+    global db
+    global login_manager
+    global user_storage
+    global global_storage
+    
+    ofp_app = Flask(__name__)
+    ofp_app.secret_key = "yomama"
+    ofp_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///ofp.db"
+    ofp_app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    @app.route('/')
-    def index():
-        return redirect(url_for("dev.dev_index"))
+    login_manager = LoginManager()
+    login_manager.init_app(ofp_app)
 
-    @app.route('/meals')
-    def meals(): 
-        return render_template('meals.html', public_ipv4=OFPGlobals().get("IPV4_PUBLIC"))
+    db = SQLAlchemy(ofp_app)
 
-    # Page blueprints
-    app.register_blueprint(blueprint_dev)
-        
-    # Global vars
-    OFPGlobals() # Explicit initialization
-    OFPGlobals().set("IPV4_PUBLIC", ofp.fetch_instance_ip())
-    DBEngine()
+    user_storage = dict[str, OFPStorage]()
+    
+    global_storage = OFPStorage()
+    global_storage.set("IPV4_PUBLIC", ofp.fetch_instance_ip())
 
-    return app
-
-if __name__ == '__main__':
-    # Core init
-    app = create_app()
-
-    # entrypoint
-    app.run(debug=True, host='0.0.0.0')
-
-#class User(db.Model):
-#    __tablename__ = 'USER'
-#    id = db.Column(db.Integer, primary_key=True)
-#    name = db.Column(db.String(100), nullable=False)
-#    email = db.Column(db.String(100), nullable=False)
-#
-#@app.route('/')
-#def index():
-#    try:
-#        users = User.query.all()
-#        return render_template('index.html', users=users)
-#    except Exception as e:
-#        return f"Error: {str(e)}"
-#
-#@app.route('/add_user', methods=['POST'])
-#def add_user():
-#    name = request.form.get('name')
-#    email = request.form.get('email')
-#    
-#    try:
-#        new_user = User(name=name, email=email)
-#        db.session.add(new_user)
-#        db.session.commit()
-#        return "User added successfully!"
-#    except Exception as e:
-#        return f"Error: {str(e)}"
+    return ofp_app
