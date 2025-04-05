@@ -50,8 +50,11 @@ def init_app():
         # Debug print all created tables
         tables = db_engine.metadata.tables
         if (tables):
-            for name, obj in tables.items():
-                print(f"\n* Table: {name}")
+            for name, table in tables.items():
+                print(f"* Table: {name}")
+                for column in table.columns:
+                    print(f"    {column.name}")
+                
         else:
             print("no tables")
 

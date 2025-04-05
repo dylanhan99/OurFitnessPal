@@ -29,8 +29,11 @@ def render_dev():
 @blueprint_dev.route("/dev", methods=['GET', 'POST'])
 def dev_index():
     if request.method == 'GET': # First load
+        db.get_table("Food").insert_food("celery", "tastes good", 12, 0, 1)
+
         # Just get the first tablename if there is one
         items = db.metadata.tables.items()
+        print(items)
         if items and len(items) > 0:
             set_selected_table(list(items)[0][0]) # first tuple, first var
     elif request.method == 'POST':

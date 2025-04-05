@@ -48,6 +48,22 @@ class DBEngine():
             self._logger.error(f"Error executing query: {str(e)}")
             raise
 
+    def execute_with_commit(self, obj: Any):
+        """
+        Execute given an ORM object or query string
+        """
+        try:
+            if (hasattr(obj, '__table__')):
+                session = self._engine.session
+                session.add(obj)
+                session.commit()
+                return obj
+            else:
+                return None
+        except SQLAlchemyError as e:
+            self._logger.error(f"Error executing ORM: {str(e)}")
+            raise
+
     def register_table(self, table_name: str, table_class: Any) -> None:
         """
         Register an instance of custom table class to the db wrapper cache.
