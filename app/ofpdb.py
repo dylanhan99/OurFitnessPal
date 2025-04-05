@@ -1,8 +1,11 @@
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 from flask_sqlalchemy import SQLAlchemy
 from typing import Dict, List, Any, Optional, Union, Tuple
 import logging
 from threading import Lock
+from abc import ABC, abstractmethod
+from typing import Callable
 
 db = SQLAlchemy() # Initialize empty thing so that db models can be set up
 
@@ -16,50 +19,25 @@ class DBEngine():
         """
         self._engine = db
         self._tables = {}
-        self._logger = logging.getLogger(__name__) # i think shd make logger a global
+        self._logger = logging.getLogger(__name__)
         self._lock = Lock()
 
-    def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """
-        Execute stringified SQL query and returns the results
-        Params may be provided which binds to the query
-        Returns dict containing query results
-        """
+    def execute_orm(self, obj: Any):
         try:
-            with self._engine.connect() as connection:
-                result = connection.execute(query, params)
-                return [dict(row) for row in result]
+            session = self._engine.session
+            return session.execute(obj).scalars()
         except SQLAlchemyError as e:
-            self._logger.error(f"Error executing query: {str(e)}")
+            self._logger.error(f"Error executing ORM: {str(e)}")
             raise
 
-    def execute_with_commit(self, query: str, params: Optional[Dict[str, Any]] = None) -> int:
+    def execute_with_commit(self, action: Callable[[Session], None]):
         """
-        Execute stringified SQL query and returns the results
-        Params may be provided which binds to the query
-        Returns number of rows altered
+        Execute given an ORM object
         """
         try:
-            with self._engine.connect() as connection:
-                result = connection.execute(query, params) # It will throw an error safely in cases of multi-line query
-                connection.commit()
-                return result.rowcount
-        except SQLAlchemyError as e:
-            self._logger.error(f"Error executing query: {str(e)}")
-            raise
-
-    def execute_with_commit(self, obj: Any):
-        """
-        Execute given an ORM object or query string
-        """
-        try:
-            if (hasattr(obj, '__table__')):
-                session = self._engine.session
-                session.add(obj)
-                session.commit()
-                return obj
-            else:
-                return None
+            session = self._engine.session
+            action(session)
+            session.commit()
         except SQLAlchemyError as e:
             self._logger.error(f"Error executing ORM: {str(e)}")
             raise
@@ -99,7 +77,10 @@ class DBEngine():
     def tables(self):
         return self._tables
 
-class BaseTable:
+class BaseTable(ABC):
+    '''
+    Abstract Base Class (ABC) used for pure virtual functions
+    '''
     def __init__(self, db_engine: DBEngine, table_name: str):
         self._db = db_engine
         self._table_name = table_name
@@ -109,22 +90,18 @@ class BaseTable:
         if self._table_name in self._db.metadata.tables:
             self._table = self._db.metadata.tables[self._table_name]
 
-    def insert(self, data: Dict[str, Any]) -> int:
-        columns = ", ".join(data.keys())
-        placeholders = ", ".join(f":{key}" for key in data.keys())
-        
-        query = f"INSERT INTO {self._table_name} ({columns}) VALUES ({placeholders})"
-        return self._db.execute_with_commit(query, data)
-
-    def update(self, data: Dict[str, Any], condition: str, condition_data: Dict[str, Any] = None) -> int:
-        placeholders = ", ".join(f"{key} = :{key}" for key in data.keys())
-        all_data = {**data} # Copying data
-        if condition_data:
-            all_data.update(condition_data) # Appending other data
-
-        query = f"UPDATE {self._table_name} SET ({placeholders}) WHERE ({condition})"
-        return self._db.execute_with_commit(query, all_data)
+    @abstractmethod
+    def select_all(self):
+        pass
     
-    def delete(self, condition: str, condition_data: Dict[str, Any] = None) -> int:
-        query = f"DELETE FROM {self._table_name} WHERE {condition}"
-        return self._db.execute_with_commit(query, condition_data)
+    @property
+    def engine(self):
+        return self._db
+
+    @property
+    def db(self):
+        return self.engine.db
+    
+    @property
+    def table_name(self):
+        return self._table_name

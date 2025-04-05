@@ -6,10 +6,40 @@
         <input type="hidden" name="form_id" value="choose_table">
         <label for="table_ddl">Choose Table</label>
         <select name="table_ddl" id="table_ddl" value="table_ddl" onchange="this.form.submit();">
-            <option value="{{selected_table_name}}"></option>
-            {% for name in table_ddl %}
+            <option value="" selected disabled hidden>Choose here</option>
+            {% for name in table_names %}
                 <option value="{{name}}">{{name}}</option>
             {% endfor %}
         </select>
     </form>
+    <p>
+        {{selected_table_name}}
+    </p>
+    {% if selected_table %}
+    <table border="1">
+        <thead>
+            <tr>
+                {% for column_name in column_names %}
+                    <th>{{column_name}}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in select_all %}
+            <tr>
+                {% for column_name in column_names %}
+                    <td>{{ row[column_name] }}</td>
+                {% endfor %}
+                <td>
+                    <form method="POST">
+                        <input type="hidden" name="form_id" value="delete_row">
+                        <button type="submit">Delete</button>
+                        <input type="hidden" name="row_num" value="{{ loop.index }}">
+                    </form>
+                </td>
+            </tr>
+            {% endfor%}
+        </tbody>
+    </table>
+    {% endif %}
 {% endblock %}

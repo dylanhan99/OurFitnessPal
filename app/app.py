@@ -30,7 +30,10 @@ def init_app():
     ofp_app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(ofp_app)
-    from db_classes import db_FoodTable, FoodTable
+    from db_classes import (                    \
+        db_MacroCalorie, db_Food, db_FoodLog, \
+        MacroCalorie, Food, FoodLog           \
+    )
 
     # Need a external input to create tables or not
     # if True:
@@ -45,7 +48,9 @@ def init_app():
         db.create_all()
         
         db_engine = DBEngine()
-        db_engine.register_table(db_FoodTable().__tablename__, FoodTable)
+        db_engine.register_table(db_MacroCalorie().__tablename__, MacroCalorie)
+        db_engine.register_table(db_Food().__tablename__, Food)
+        db_engine.register_table(db_FoodLog().__tablename__, FoodLog)
 
         # Debug print all created tables
         tables = db_engine.metadata.tables
